@@ -1,0 +1,1 @@
+nav();const app=document.getElementById("app");(async()=>{try{const d=await api("/api/saved-jobs");app.innerHTML=`<div class="container"><div class="hero"><h1>Saved <span class="grad">Jobs</span></h1></div><div class="grid2">${d.jobs.map(jobCard).join("")||'<div class="empty">No saved jobs.</div>'}</div></div>`}catch(e){toast(e.message)}})();

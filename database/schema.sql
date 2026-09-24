@@ -1,0 +1,134 @@
+CREATE DATABASE IF NOT EXISTS careerjob CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE careerjob;
+
+CREATE TABLE IF NOT EXISTS users (
+ id INT AUTO_INCREMENT PRIMARY KEY,
+ name VARCHAR(120) NOT NULL,
+ email VARCHAR(190) NOT NULL UNIQUE,
+ password_hash VARCHAR(255) NOT NULL,
+ role ENUM('USER','ADMIN') NOT NULL DEFAULT 'USER',
+ is_active TINYINT(1) NOT NULL DEFAULT 1,
+ created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+ updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS skills (
+ id INT AUTO_INCREMENT PRIMARY KEY,
+ name VARCHAR(100) NOT NULL UNIQUE
+);
+
+CREATE TABLE IF NOT EXISTS profiles (
+ id INT AUTO_INCREMENT PRIMARY KEY,
+ user_id INT NOT NULL UNIQUE,
+ headline VARCHAR(180),
+ phone VARCHAR(30),
+ education VARCHAR(200),
+ experience_years DECIMAL(4,1) DEFAULT 0,
+ preferred_location VARCHAR(180),
+ preferred_locations TEXT,
+ min_salary INT DEFAULT 0,
+ max_salary INT DEFAULT 0,
+ job_type VARCHAR(50) DEFAULT 'Any',
+ work_mode VARCHAR(50) DEFAULT 'Any',
+ bio TEXT,
+ profile_completion INT DEFAULT 0,
+ updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+ FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS user_skills (
+ user_id INT NOT NULL,
+ skill_id INT NOT NULL,
+ skill_level ENUM('Beginner','Intermediate','Advanced','Expert') DEFAULT 'Intermediate',
+ PRIMARY KEY(user_id,skill_id),
+ FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE,
+ FOREIGN KEY(skill_id) REFERENCES skills(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS companies (
+ id INT AUTO_INCREMENT PRIMARY KEY,
+ name VARCHAR(180) NOT NULL UNIQUE,
+ industry VARCHAR(120),
+ description TEXT,
+ website VARCHAR(500),
+ headquarters VARCHAR(180),
+ logo_url VARCHAR(500),
+ is_verified TINYINT(1) DEFAULT 0,
+ created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS jobs (
+ id INT AUTO_INCREMENT PRIMARY KEY,
+ external_id VARCHAR(190) UNIQUE,
+ provider VARCHAR(100) NOT NULL,
+ source_type ENUM('LIVE_API','DEMO','ADMIN') DEFAULT 'DEMO',
+ company_id INT,
+ title VARCHAR(220) NOT NULL,
+ description TEXT,
+ skills TEXT,
+ location VARCHAR(220),
+ state VARCHAR(100),
+ country VARCHAR(100) DEFAULT 'India',
+ min_salary INT DEFAULT 0,
+ max_salary INT DEFAULT 0,
+ experience_min DECIMAL(4,1) DEFAULT 0,
+ experience_max DECIMAL(4,1) DEFAULT 99,
+ job_type VARCHAR(50) DEFAULT 'Full-time',
+ work_mode VARCHAR(50) DEFAULT 'On-site',
+ application_url VARCHAR(1000),
+ posted_at DATETIME,
+ expires_at DATETIME NULL,
+ is_active TINYINT(1) DEFAULT 1,
+ created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+ updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+ FOREIGN KEY(company_id) REFERENCES companies(id) ON DELETE SET NULL,
+ INDEX(location),
+ INDEX(posted_at),
+ INDEX(is_active),
+ INDEX(source_type)
+);
+
+CREATE TABLE IF NOT EXISTS saved_jobs (
+ id INT AUTO_INCREMENT PRIMARY KEY,
+ user_id INT NOT NULL,
+ job_id INT NOT NULL,
+ created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+ UNIQUE KEY uq_saved(user_id,job_id),
+ FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE,
+ FOREIGN KEY(job_id) REFERENCES jobs(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS applications (
+ id INT AUTO_INCREMENT PRIMARY KEY,
+ user_id INT NOT NULL,
+ job_id INT NOT NULL,
+ status ENUM('Applied','Under Review','Interview','Selected','Rejected') DEFAULT 'Applied',
+ applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+ notes TEXT,
+ updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+ UNIQUE KEY uq_application(user_id,job_id),
+ FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE,
+ FOREIGN KEY(job_id) REFERENCES jobs(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS recommendation_logs (
+ id BIGINT AUTO_INCREMENT PRIMARY KEY,
+ user_id INT NOT NULL,
+ job_id INT NOT NULL,
+ match_score DECIMAL(5,2) NOT NULL,
+ reasons TEXT,
+ generated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+ FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE,
+ FOREIGN KEY(job_id) REFERENCES jobs(id) ON DELETE CASCADE,
+ INDEX(user_id,generated_at)
+);
+
+CREATE TABLE IF NOT EXISTS sync_logs (
+ id INT AUTO_INCREMENT PRIMARY KEY,
+ provider VARCHAR(100) NOT NULL,
+ status VARCHAR(40) NOT NULL,
+ jobs_received INT DEFAULT 0,
+ jobs_added INT DEFAULT 0,
+ message TEXT,
+ synced_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
